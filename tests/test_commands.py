@@ -272,7 +272,7 @@ def test_help():
 def test_the_commands_register_within_discords_limits():
     bot = ProcBot()
     names = {command.name for command in bot.tree.get_commands()}
-    assert names == {"proclaim", "wanted", "decree", "setup", "help"}
+    assert names == {"proclaim", "wanted", "decree", "onthisday", "setup", "help"}
     for command in bot.tree.get_commands():
         payload = command.to_dict(bot.tree)
         stack = [payload]

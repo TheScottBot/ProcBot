@@ -5,8 +5,9 @@ from logging.handlers import RotatingFileHandler
 
 import discord
 from discord import app_commands
+from discord.ext import tasks
 
-from procbot import config, db
+from procbot import config, daily, db
 from procbot.commands import COMMANDS
 
 log = logging.getLogger("procbot")
@@ -40,7 +41,16 @@ class ProcBot(discord.Client):
             self.tree.add_command(command)
         self.tree.on_error = self.on_app_command_error
 
+    @tasks.loop(minutes=1)
+    async def daily_loop(self):
+        await daily.post_due(self)
+
+    @daily_loop.before_loop
+    async def before_daily_loop(self):
+        await self.wait_until_ready()
+
     async def setup_hook(self):
+        self.daily_loop.start()
         if config.GUILD_IDS:
             # Server-only commands update instantly; global ones can take up to an hour to reach everyone.
             for guild_id in config.GUILD_IDS:
@@ -61,12 +71,15 @@ class ProcBot(discord.Client):
         log.info("Logged in as %s (ID: %s), in %d servers", self.user, self.user.id, len(self.guilds))
 
     async def on_guild_remove(self, guild: discord.Guild):
-        db.forget(guild.id)  # Removed from a server: its filters and hidden proclamations go too.
+        db.forget(guild.id)  # Removed from a server: its filters, hidden proclamations and daily post go too.
+        db.stop_daily(guild.id)
         log.info("Removed from server %s; forgot its settings", guild.id)
 
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
-        if db.forget_channel(channel.id):  # A deleted channel's own filters go with it.
+        if db.forget_channel(channel.id):  # A deleted channel's own filters go with it, and its daily post.
             log.info("Channel %s deleted; forgot its filters", channel.id)
+        if db.stop_daily_in(channel.id):
+            log.info("Channel %s deleted; stopped its daily post", channel.id)
 
     async def on_app_command_completion(self, interaction: discord.Interaction, command):
         # Which command ran, and in which server: never who ran it, or what they searched for.

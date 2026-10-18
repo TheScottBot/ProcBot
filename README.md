@@ -16,6 +16,8 @@ Early English Books Online, which are public domain (CC0). Each links to its ful
 | `/proclaim id:#a39500` | A particular one, by the id in its footer |
 | `/wanted @someone` | Proclaim them a traitor (named, not pinged), with a real proclamation "for the apprehension of" one, and the reward when it says |
 | `/decree thing [kind] [voice]` | A made-up proclamation `against` (or `for`, or `concerning`) anything, by the King or the Queen, in the real ones' words and spelling, dated today. Marked as not real |
+| `/onthisday [day]` | One given on today's date (or `day: 5 November`) in some year, or that month if none survives from the day |
+| `/setup daily here [time]` | Post a Proclamation of the Day in this channel, at `time:` (9am by default, UK time); `daily show`, `daily stop` |
 | `/setup show` | This server's filters, and how many proclamations they allow |
 | `/setup preset` | Every filter at once: 🕊️ Tame, ⚖️ Tasteful (the default), 🪓 Grim, 📜 Unabridged |
 | `/setup <category> level:` | One filter: **off** (none of it), **mild** (passing mentions), **full** (anything) |
@@ -24,8 +26,10 @@ Early English Books Online, which are public domain (CC0). Each links to its ful
 | `/setup here …` | The same for just the channel you're in: `here show`, `here preset`, `here <category>`, `here reset` |
 | `/help` | The above, in Discord |
 
-Searches find old spellings too: `jesuit` finds "Iesuites". Dates are as printed (Old Style: until 1752 the English
-and Irish year began on 25 March).
+Searches find old spellings too: `jesuit` finds "Iesuites". Dates are as printed: Old Style, the Julian calendar,
+ten or eleven days behind ours, and until 1752 the English and Irish year began on 25 March. "On this day" goes by
+the printed date. The Proclamation of the Day is one given on that day of the year when one survives (349 days
+of the year have one under the default filters), and follows its channel's filters.
 
 ### Filters
 

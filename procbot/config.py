@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
@@ -32,4 +33,6 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 # Leave empty for a public bot: commands are registered globally, for every server it's in.
 GUILD_IDS = parse_ids("GUILD_IDS")
 DB_PATH = str(BASE_DIR / os.getenv("DB_PATH", "procbot.db"))
+# What "today" is for /onthisday, and the time zone of the daily post's time.
+BOT_TIMEZONE = ZoneInfo(os.getenv("BOT_TIMEZONE", "Europe/London"))
 LOG_FILE = BASE_DIR / os.getenv("LOG_FILE", "logs/procbot-dev.log" if DEV else "logs/procbot.log")

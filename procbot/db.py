@@ -1,10 +1,13 @@
-"""The SQLite database: each server's filter levels, any channels' own levels, and hidden proclamations.
+"""The SQLite database: each server's filter levels, any channels' own levels, hidden proclamations, and where its
+Proclamation of the Day goes.
 
 Call init() once at startup (the tests call it with ":memory:"). A server with no rows has the default preset, and a
 channel with no rows has its server's levels.
 """
 
 import sqlite3
+from dataclasses import dataclass
+from datetime import datetime
 
 from procbot import content
 
@@ -34,9 +37,18 @@ SCHEMA = [
     # Proclamations a server has hidden by hand (/setup hide), whatever its levels, in every channel.
     """
     CREATE TABLE IF NOT EXISTS hidden_proclamations (
-        guild_id   INTEGER NOT NULL,
+        guild_id        INTEGER NOT NULL,
         proclamation_id TEXT NOT NULL,
         PRIMARY KEY (guild_id, proclamation_id)
+    )
+    """,
+    # Where and when each server's Proclamation of the Day goes (/setup daily). At most one per server.
+    """
+    CREATE TABLE IF NOT EXISTS daily_posts (
+        guild_id   INTEGER PRIMARY KEY,
+        channel_id INTEGER NOT NULL,
+        clock      TEXT NOT NULL,     -- "09:00", in config.BOT_TIMEZONE
+        next_run   TEXT NOT NULL      -- UTC, ISO
     )
     """,
 ]
@@ -107,7 +119,8 @@ def forget_channel(channel_id: int) -> bool:
 def hidden(guild_id: int | None) -> set[str]:
     if guild_id is None:
         return set()
-    return {row[0] for row in conn.execute("SELECT proclamation_id FROM hidden_proclamations WHERE guild_id = ?", (guild_id,))}
+    rows = conn.execute("SELECT proclamation_id FROM hidden_proclamations WHERE guild_id = ?", (guild_id,))
+    return {row[0] for row in rows}
 
 
 def hide(guild_id: int, proclamation_id: str) -> bool:
@@ -120,14 +133,69 @@ def hide(guild_id: int, proclamation_id: str) -> bool:
 
 def unhide(guild_id: int, proclamation_id: str) -> bool:
     """Show a hidden proclamation again. False if it wasn't hidden."""
-    cursor = conn.execute("DELETE FROM hidden_proclamations WHERE guild_id = ? AND proclamation_id = ?", (guild_id, proclamation_id))
+    cursor = conn.execute("DELETE FROM hidden_proclamations WHERE guild_id = ? AND proclamation_id = ?",
+                          (guild_id, proclamation_id))
     conn.commit()
     return cursor.rowcount > 0
 
 
 def forget(guild_id: int) -> None:
-    """Everything about a server, its channels included: /setup reset, or the bot leaving it."""
+    """A server's filters, its channels' included: /setup reset, or the bot leaving it. (Its daily post stays, for a
+    reset: stop_daily stops that.)"""
     with conn:
         conn.execute("DELETE FROM filter_levels WHERE guild_id = ?", (guild_id,))
         conn.execute("DELETE FROM channel_levels WHERE guild_id = ?", (guild_id,))
         conn.execute("DELETE FROM hidden_proclamations WHERE guild_id = ?", (guild_id,))
+
+
+# --- The Proclamation of the Day (daily.py) ---
+
+@dataclass(frozen=True)
+class DailySetup:
+    guild_id: int
+    channel_id: int
+    clock: str  # "09:00", in config.BOT_TIMEZONE
+    next_run: str  # UTC, ISO
+
+    @property
+    def next_run_at(self) -> datetime:
+        return datetime.fromisoformat(self.next_run)
+
+
+DAILY_COLUMNS = "guild_id, channel_id, clock, next_run"
+
+
+def daily(guild_id: int) -> DailySetup | None:
+    row = conn.execute(f"SELECT {DAILY_COLUMNS} FROM daily_posts WHERE guild_id = ?", (guild_id,)).fetchone()
+    return DailySetup(*row) if row else None
+
+
+def set_daily(guild_id: int, channel_id: int, clock: str, next_run: datetime) -> None:
+    """Set up (or move) a server's daily post."""
+    with conn:
+        conn.execute(f"INSERT OR REPLACE INTO daily_posts ({DAILY_COLUMNS}) VALUES (?, ?, ?, ?)",
+                     (guild_id, channel_id, clock, next_run.isoformat()))
+
+
+def stop_daily(guild_id: int) -> bool:
+    """False if there was none."""
+    cursor = conn.execute("DELETE FROM daily_posts WHERE guild_id = ?", (guild_id,))
+    conn.commit()
+    return cursor.rowcount > 0
+
+
+def stop_daily_in(channel_id: int) -> bool:
+    """A deleted channel's daily post stops. False if it had none."""
+    cursor = conn.execute("DELETE FROM daily_posts WHERE channel_id = ?", (channel_id,))
+    conn.commit()
+    return cursor.rowcount > 0
+
+
+def dailies_due(now: datetime) -> list[DailySetup]:
+    rows = conn.execute(f"SELECT {DAILY_COLUMNS} FROM daily_posts").fetchall()
+    return [setup for setup in (DailySetup(*row) for row in rows) if setup.next_run_at <= now]
+
+
+def daily_posted(guild_id: int, next_run: datetime) -> None:
+    with conn:
+        conn.execute("UPDATE daily_posts SET next_run = ? WHERE guild_id = ?", (next_run.isoformat(), guild_id))

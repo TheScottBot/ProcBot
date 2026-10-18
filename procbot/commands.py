@@ -1,4 +1,4 @@
-"""The slash commands: /proclaim, /wanted, /decree, /setup and /help.
+"""The slash commands: /proclaim, /wanted, /decree, /onthisday, /setup and /help.
 
 /setup is only shown to people with Manage Server (Discord's default_permissions; a server can change who sees it
 under Server Settings → Integrations). Its replies are only visible to whoever ran it.
@@ -9,11 +9,12 @@ proclamations are hidden in every channel. (All as in Hammered of Witches.)
 """
 
 import logging
+from datetime import datetime, timezone
 
 import discord
 from discord import app_commands
 
-from procbot import content, db, decree, proclamations, spelling
+from procbot import config, content, daily, db, decree, proclamations, spelling
 
 log = logging.getLogger("procbot")
 NO_PINGS = discord.AllowedMentions.none()
@@ -117,6 +118,30 @@ async def wanted(interaction: discord.Interaction, suspect: discord.User, modern
     embed = proclamations.embed(proclamation, modern=modern, title=title)
     await interaction.response.send_message(f"{interaction.user.mention} has {suspect.mention} proclaimed a traitor.",
                                             embed=embed, allowed_mentions=NO_PINGS)
+
+
+@app_commands.command(name="onthisday", description="A proclamation given on this day of the year, any year "
+                                                    "(1509-1700).")
+@app_commands.describe(day="Another day, e.g. 5 November or March 25 (today if not given)",
+                       modern="Tidy the old printers' spelling")
+async def onthisday(interaction: discord.Interaction, day: str = "", modern: bool = False):
+    """A proclamation given on today's date (or the `day:` you give) in some year between 1509 and 1700, or if
+    none survives from that day, one from that month. Dates are as printed: before 1752 that's Old Style, ten or
+    eleven days behind our calendar. Only what the filters here allow."""
+    try:
+        on = daily.parse_day(day) if day.strip() else daily.today()
+    except daily.Unreadable as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    proclamation, title = daily.pick_for(where(interaction), limits_here(interaction),
+                                         db.hidden(interaction.guild_id), on)
+    if proclamation is None:
+        await interaction.response.send_message("Nothing gets past the filters here. (`/setup here show` has them.)",
+                                                ephemeral=True)
+        return
+    if not title.startswith("📅 On this day"):
+        title = f"📅 None survive from {daily.day_name(on)}: {proclamation.when}"
+    await interaction.response.send_message(embed=proclamations.embed(proclamation, modern=modern, title=title))
 
 
 KIND_CHOICES = [app_commands.Choice(name=kind, value=kind) for kind in (decree.AGAINST, decree.FOR, decree.CONCERNING)]
@@ -239,8 +264,8 @@ async def setup_preset(interaction: discord.Interaction, preset: app_commands.Ch
     chosen = content.PRESETS_BY_KEY[preset.value]
     db.set_limits(interaction.guild_id, chosen.limits)
     log.info("[%s] preset set to %s", interaction.guild_id, chosen.key)
-    await interaction.response.send_message(f"**{chosen.name}**: {chosen.about}", embed=settings_embed(interaction.guild),
-                                            ephemeral=True)
+    await interaction.response.send_message(f"**{chosen.name}**: {chosen.about}",
+                                            embed=settings_embed(interaction.guild), ephemeral=True)
 
 
 @here.command(name="preset", description="Set every filter for this channel at once.")
@@ -309,6 +334,58 @@ async def setup_unhide(interaction: discord.Interaction, proclamation: str):
         await interaction.response.send_message(f"Proclamation `#{proclamation_id}` wasn't hidden.", ephemeral=True)
 
 
+daily_group = app_commands.Group(name="daily", description="Post a Proclamation of the Day in a channel.",
+                                 parent=setup)
+
+
+def daily_text(setup_row: db.DailySetup | None) -> str:
+    if setup_row is None:
+        return ("There's no Proclamation of the Day here. `/setup daily here` in a channel posts one there every "
+                "day.")
+    when = int(setup_row.next_run_at.timestamp())
+    return (f"📅 The Proclamation of the Day goes to <#{setup_row.channel_id}> every day at {setup_row.clock} "
+            f"({config.BOT_TIMEZONE.key} time). The next is <t:{when}:R>. It's one given on that day of the year "
+            "when one survives, and follows that channel's filters.")
+
+
+@daily_group.command(name="here", description="Post a Proclamation of the Day in this channel (moving it here).")
+@app_commands.describe(time=f"When, each day: 9am, 6:30pm, 21:00 (default {daily.DEFAULT_TIME})")
+async def daily_here(interaction: discord.Interaction, time: str = daily.DEFAULT_TIME):
+    try:
+        clock = daily.parse_clock(time)
+    except daily.Unreadable as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    channel_id = channel_of(interaction)
+    before = db.daily(interaction.guild_id)
+    db.set_daily(interaction.guild_id, channel_id, clock, daily.next_post(clock, datetime.now(timezone.utc)))
+    log.info("[%s] daily post set to channel %s at %s", interaction.guild_id, channel_id, clock)
+    lines = [daily_text(db.daily(interaction.guild_id))]
+    if before and before.channel_id != channel_id:
+        lines.append(f"-# It's moved here from <#{before.channel_id}>.")
+    me = getattr(interaction.guild, "me", None)
+    if me and hasattr(interaction.channel, "permissions_for") and \
+            not interaction.channel.permissions_for(me).send_messages:
+        lines.append("⚠️ I can't post in this channel yet: give me Send Messages and Embed Links here.")
+    await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+
+@daily_group.command(name="stop", description="Stop the Proclamation of the Day.")
+async def daily_stop(interaction: discord.Interaction):
+    if db.stop_daily(interaction.guild_id):
+        log.info("[%s] daily post stopped", interaction.guild_id)
+        await interaction.response.send_message("📅 No more Proclamations of the Day. `/onthisday` still works "
+                                                "whenever you ask.", ephemeral=True)
+    else:
+        await interaction.response.send_message("There's no Proclamation of the Day here, so there's nothing to "
+                                                "stop.", ephemeral=True)
+
+
+@daily_group.command(name="show", description="Where and when the Proclamation of the Day goes.")
+async def daily_show(interaction: discord.Interaction):
+    await interaction.response.send_message(daily_text(db.daily(interaction.guild_id)), ephemeral=True)
+
+
 @setup.command(name="reset", description="Back to the default (tasteful) filters in every channel, nothing hidden.")
 async def setup_reset(interaction: discord.Interaction):
     db.forget(interaction.guild_id)
@@ -343,6 +420,8 @@ async def help_command(interaction: discord.Interaction):
         "`/proclaim id:#a39500`: a particular one, by the id in its footer\n"
         "`/wanted @someone`: proclaim them a traitor, with a real proclamation for apprehending one\n"
         "`/decree thing`: have a (made-up) proclamation against anything, in the Crown's words\n"
+        "`/onthisday [day]`: one given on this day of the year\n"
+        "`/setup daily here [time]`: a Proclamation of the Day in this channel (Manage Server)\n"
         "`/setup ...`: choose what this server sees (Manage Server)"))
     embed.add_field(name="Filters", inline=False, value=(
         "They're the state's voice, and some of it is ugly. Each server chooses, per category, **off** (none of "
@@ -364,4 +443,4 @@ async def help_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-COMMANDS = [proclaim, wanted, decree_command, setup, help_command]
+COMMANDS = [proclaim, wanted, decree_command, onthisday, setup, help_command]

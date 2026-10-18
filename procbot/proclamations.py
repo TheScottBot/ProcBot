@@ -129,21 +129,29 @@ def spelling_twin(letter: str) -> str:
 UNLIMITED = content.every(content.FULL)
 
 
+def on_date(proclamation: Proclamation, on: str) -> bool:
+    """Whether it was given on this day of the year ("10-18") or in this month ("10"), any year, as printed."""
+    if len(on) == 5:
+        return len(proclamation.date) == 10 and proclamation.date[5:] == on
+    return len(proclamation.date) >= 7 and proclamation.date[5:7] == on
+
+
 def matching(limits: dict[str, int] = UNLIMITED, hidden: set[str] = frozenset(), realm: str = "", monarch: str = "",
-             about: str = "", kind: re.Pattern | None = None) -> list[Proclamation]:
+             about: str = "", kind: re.Pattern | None = None, on: str = "") -> list[Proclamation]:
     """The proclamations these limits allow (content.py) and aren't hidden, of this realm and monarch and about these
-    words, if given. `kind` must match the heading or title: WANTED for the ones for apprehending someone."""
+    words, if given. `kind` must match the heading or title: WANTED for the ones for apprehending someone. `on` is a
+    day ("10-18") or month ("10") of any year."""
     patterns = words_in(about)
     return [p for p in PROCLAMATIONS if p.id not in hidden and content.allowed(p.tags, limits)
             and (not realm or p.realm == realm) and (not monarch or p.monarch == monarch)
             and all(pattern.search(p.text) for pattern in patterns)
-            and (kind is None or kind.search(" ".join(p.heading + (p.title,))))]
+            and (kind is None or kind.search(" ".join(p.heading + (p.title,)))) and (not on or on_date(p, on))]
 
 
 def pick(where: int, limits: dict[str, int] = UNLIMITED, hidden: set[str] = frozenset(), realm: str = "",
-         monarch: str = "", about: str = "", kind: re.Pattern | None = None) -> Proclamation | None:
+         monarch: str = "", about: str = "", kind: re.Pattern | None = None, on: str = "") -> Proclamation | None:
     """A random proclamation that matching() allows, avoiding ones shown here lately."""
-    candidates = matching(limits, hidden, realm, monarch, about, kind)
+    candidates = matching(limits, hidden, realm, monarch, about, kind, on)
     if not candidates:
         return None
     shown = recent.setdefault(where, deque(maxlen=RECENT_SIZE))
