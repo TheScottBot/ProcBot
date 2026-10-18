@@ -56,9 +56,13 @@ def test_pick_for_a_day():
     assert proclamation.date.endswith("-10-18") and title == f"📅 On this day, {proclamation.when}"
 
 
+def given_on(on: str) -> set[str]:
+    """Every proclamation given on this day: hidden, they leave it with none."""
+    return {p.id for p in proclamations.matching(on=on)}
+
+
 def test_pick_for_a_day_with_none_falls_back_to_the_month():
-    empty = next(f"01-{day:02d}" for day in range(1, 32) if not proclamations.matching(on=f"01-{day:02d}"))
-    proclamation, title = daily.pick_for(1, proclamations.UNLIMITED, set(), empty)
+    proclamation, title = daily.pick_for(1, proclamations.UNLIMITED, given_on("01-09"), "01-09")
     assert proclamation.date[5:7] == "01" and title.startswith("📅 This month")
 
 
@@ -135,10 +139,11 @@ def test_onthisday_today_and_unreadable():
 
 
 def test_onthisday_none_that_day():
-    empty = next(f"01-{day:02d}" for day in range(1, 32) if not proclamations.matching(on=f"01-{day:02d}"))
+    for proclamation_id in given_on("01-09"):
+        db.hide(111, proclamation_id)
     interaction = Interaction()
-    run(commands.onthisday.callback(interaction, day=f"{int(empty[3:])} January"))
-    assert interaction.last.embed.title.startswith(f"📅 None survive from {int(empty[3:])} January")
+    run(commands.onthisday.callback(interaction, day="9 January"))
+    assert interaction.last.embed.title.startswith("📅 None survive from 9 January")
 
 
 def daily_command(name):

@@ -10,7 +10,41 @@ def test_data_loads():
     assert len(proclamations.BY_ID) == len(proclamations.PROCLAMATIONS)  # Ids are unique
     for realm in proclamations.REALMS:
         assert any(p.realm == realm for p in proclamations.PROCLAMATIONS)
-    assert all(p.paragraphs and p.realm in proclamations.REALMS for p in proclamations.PROCLAMATIONS)
+    assert all(p.realm in proclamations.REALMS and p.headline for p in proclamations.PROCLAMATIONS)
+    assert all(p.paragraphs for p in proclamations.PROCLAMATIONS if not p.calendar)  # The full texts have text
+
+
+def test_calendar_loads():
+    calendar = [p for p in proclamations.PROCLAMATIONS if p.calendar]
+    assert len(calendar) > 6000
+    irish = [p for p in calendar if p.realm == "ireland"]
+    assert len(irish) > 1300 and all(p.id.startswith("ire") for p in irish)
+    assert all(p.date and p.url.startswith("https://archive.org/details/b24872763_000") for p in calendar)
+
+
+def test_calendar_leaves_out_what_tcp_has():
+    import json
+    entries = json.loads((proclamations.DATA / "calendar.json").read_text(encoding="utf-8"))
+    linked = [e for e in entries if "tcp" in e]
+    assert len(linked) > 1000
+    assert all(e["id"] not in proclamations.BY_ID and e["tcp"] in proclamations.BY_ID for e in linked)
+
+
+def test_calendar_embed():
+    p = proclamations.BY_ID["ire679"]  # Concerning the export of sheep and deer fells, 1662
+    embed = proclamations.embed(p)
+    assert embed.title == p.headline and embed.url == p.url
+    assert embed.author.name.startswith("☘️ Ireland") and "1662" in embed.author.name
+    assert embed.footer.text.startswith(proclamations.CALENDAR_SOURCE) and "#ire679" in embed.footer.text
+    where = next(field for field in embed.fields if field.name == "Where it's from")
+    assert "Steele's calendar" in where.value and "not its own words" in where.value
+
+
+def test_steele_reward_comes_first():
+    p = proclamations.Proclamation("ire1", 0, "ireland", "", ("£40 reward for the discovery of the murderers.",),
+                                   source="steele", summary="For the arrest of the murderers of Richard Clark",
+                                   book="b", leaf=1)
+    assert proclamations.reward(p) == "£40" and proclamations.WANTED.search(p.names)
 
 
 @pytest.mark.parametrize("modern", [False, True])
@@ -80,7 +114,7 @@ def test_links():
 def test_wanted_ones():
     wanted = proclamations.matching(kind=proclamations.WANTED)
     assert len(wanted) >= 60
-    assert all(proclamations.WANTED.search(" ".join(p.heading + (p.title,))) for p in wanted)
+    assert all(proclamations.WANTED.search(p.names) for p in wanted)
 
 
 @pytest.mark.parametrize("text, amount", [

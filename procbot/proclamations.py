@@ -1,6 +1,12 @@
-"""The proclamations (data/proclamations.json, built by tools/proclamations_build.py): loading, searching, picking
-one, and how one looks in Discord."""
+"""The proclamations: loading, searching, picking one, and how one looks in Discord.
 
+Two sources, as one list:
+- data/proclamations.json (tools/proclamations_build.py): the full text of 1,812, from EEBO-TCP;
+- data/calendar.json (tools/steele_build.py): Steele's 1910 calendar of the rest, 1485-1714, with his summaries.
+  An entry for one that EEBO-TCP has the text of ("tcp") is left out: the text is better.
+"""
+
+import hashlib
 import json
 import random
 import re
@@ -13,8 +19,11 @@ import discord
 from procbot import content, spelling
 
 DATA = Path(__file__).resolve().parent / "data"
-COLOR = discord.Color.from_str("#9E1B32")  # Sealing-wax red
+COLOR = discord.Color.from_str("#FF1A70")  # The icon's pink (assets/icon.png)
 SOURCE = "EEBO-TCP, public domain"
+CALENDAR_SOURCE = "Steele, Tudor and Stuart Proclamations (1910)"
+STATUS = {"printed": "Printed: Steele lists where copies are.", "manuscript": "Survives only in manuscript.",
+          "lost": "No copy known: Steele knew of it from other records."}
 REALMS = {"england": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England", "ireland": "☘️ Ireland", "scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland"}
 MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
           "November", "December"]
@@ -24,11 +33,11 @@ COMMAND_EXCERPT = 600  # And of what it commands, if that comes later
 
 @dataclass(frozen=True)
 class Proclamation:
-    id: str  # The TCP id, lower case: "a39500"
-    phase: int  # EEBO-TCP phase 1 or 2: which of Michigan's collections it's in
+    id: str  # The TCP id, lower case: "a39500"; or Steele's, by realm and number: "ire776"
+    phase: int  # EEBO-TCP phase 1 or 2: which of Michigan's collections it's in (0 for Steele's)
     realm: str  # england, ireland, scotland
-    title: str  # The catalogue's
-    paragraphs: tuple[str, ...]
+    title: str  # The catalogue's; Steele's as printed, or ""
+    paragraphs: tuple[str, ...]  # The text; for Steele's, his abstract
     issuer: str = ""  # "Sovereign", "Privy Council", "Lord Lieutenant"
     holder: str = ""  # Who held the office, if not the sovereign: "Ormonde", "O. Cromwell"
     monarch: str = ""
@@ -39,22 +48,54 @@ class Proclamation:
     dateline: str = ""  # "Given at our Court at Whitehall, the…"
     place: str = ""  # Where it was printed
     printer: str = ""
+    # Steele's calendar only:
+    source: str = "tcp"  # "tcp" or "steele"
+    summary: str = ""  # Steele's own, in brackets in the calendar: "Customs on Foreign and Colonial Produce"
+    opening: str = ""  # Its first words, as printed: "Wee the Lord Lieutenant"
+    status: str = ""  # printed, manuscript or lost
+    number: str = ""  # Steele's number, in its volume's part: "776"
+    book: str = ""  # The archive.org scan
+    leaf: int = 0  # Its page in the scan, from 0
+    page: str = ""  # Its page as printed
+    tags: dict | None = field(default=None, repr=False, compare=False)  # category -> level (content.py); from the cache
     text: str = field(init=False, repr=False, compare=False)  # All of it, for searching and tagging
-    tags: dict = field(init=False, repr=False, compare=False)  # category -> level (content.py)
 
     def __post_init__(self):
-        object.__setattr__(self, "text", " ".join(self.heading + (self.title,) + self.paragraphs))
-        object.__setattr__(self, "tags", content.tag(self.text))
+        object.__setattr__(self, "text", " ".join(self.heading + (self.title, self.summary, self.opening)
+                                                  + self.paragraphs))
+        if self.tags is None:
+            object.__setattr__(self, "tags", content.tag(self.text))
+
+    @property
+    def calendar(self) -> bool:
+        """From Steele's calendar: his summary, not the proclamation's text."""
+        return self.source == "steele"
+
+    @property
+    def headline(self) -> str:
+        """What to call it: as printed if we have it, or Steele's summary of it."""
+        if self.calendar:
+            return self.title or self.summary or (f"{self.opening} …" if self.opening else "A Proclamation")
+        return " ".join(self.heading) or self.title
+
+    @property
+    def names(self) -> str:
+        """Everything it's called, for telling what kind it is (WANTED): headings, title and Steele's summary."""
+        return " ".join(self.heading + (self.title, self.summary))
 
     @property
     def url(self) -> str:
-        """Its page in the University of Michigan's EEBO-TCP reader."""
+        """Its page in the University of Michigan's EEBO-TCP reader, or in the scan of Steele's calendar."""
+        if self.calendar:
+            return f"https://archive.org/details/{self.book}/page/n{self.leaf}/mode/1up"
         collection = "eebo" if self.phase == 1 else "eebo2"
         return f"https://quod.lib.umich.edu/e/{collection}/{self.id.upper()}.0001.001"
 
     @property
     def source_url(self) -> str:
-        """The transcription itself, TEI XML on GitHub."""
+        """The transcription itself, TEI XML on GitHub (or for Steele's, the same page)."""
+        if self.calendar:
+            return self.url
         return f"https://github.com/textcreationpartnership/{self.id.upper()}"
 
     @property
@@ -74,16 +115,51 @@ class Proclamation:
     @property
     def by(self) -> str:
         """Who issued it, for the embed: "Charles II", "Lord Lieutenant (Ormonde), under Charles II"."""
-        if self.issuer in ("", "Sovereign"):
+        if self.issuer in SOVEREIGNS:
             return self.monarch
         office = f"{self.issuer} ({self.holder})" if self.holder else self.issuer
         return f"{office}, under {self.monarch}" if self.monarch and self.monarch != "the Commonwealth" else office
 
 
+# Steele says "BY THE KING", "BY THE QUEENE", …: the monarch, not an office.
+SOVEREIGNS = {"", "Sovereign", "King", "Queen", "Queene", "Quene", "King and Queen", "King and Queene"}
+
+
+def from_calendar(entry: dict, tags: dict | None = None) -> Proclamation:
+    return Proclamation(
+        entry["id"], 0, entry["realm"], entry.get("title", ""), (entry["abstract"],) if entry.get("abstract") else (),
+        issuer=entry.get("issuer", ""), monarch=entry.get("monarch", ""), date=entry["date"],
+        signed=(entry["signed"],) if entry.get("signed") else (), dateline=entry.get("dateline", ""),
+        source="steele", summary=entry.get("summary", ""), opening=entry.get("opening", ""),
+        status=entry.get("status", ""), number=entry.get("number", ""), book=entry["book"], leaf=entry["leaf"],
+        page=entry.get("page", ""), tags=tags)
+
+
+TAGS_CACHE = Path(__file__).resolve().parent.parent / "build" / "tags.json"
+
+
 def load() -> list[Proclamation]:
-    raw = json.loads((DATA / "proclamations.json").read_text(encoding="utf-8"))
-    return [Proclamation(**{key: tuple(value) if isinstance(value, list) else value for key, value in entry.items()})
-            for entry in raw]
+    """Both sources. Tagging nearly 9,000 takes seconds, so the tags are kept in build/tags.json between runs, for
+    as long as content.py and the data are the same."""
+    files = [DATA / "proclamations.json", DATA / "calendar.json", Path(content.__file__)]
+    data = [path.read_bytes() for path in files]
+    key = hashlib.sha256(b"".join(data)).hexdigest()
+    try:
+        cache = json.loads(TAGS_CACHE.read_text(encoding="utf-8"))
+        tags = cache["tags"] if cache.get("key") == key else {}
+    except (OSError, ValueError, KeyError):
+        tags = {}
+    raw, calendar = json.loads(data[0]), json.loads(data[1])
+    texts = [Proclamation(**{key: tuple(value) if isinstance(value, list) else value for key, value in entry.items()},
+                          tags=tags.get(entry["id"])) for entry in raw]
+    out = texts + [from_calendar(entry, tags.get(entry["id"])) for entry in calendar if "tcp" not in entry]
+    if len(tags) != len(out):
+        try:
+            TAGS_CACHE.parent.mkdir(parents=True, exist_ok=True)
+            TAGS_CACHE.write_text(json.dumps({"key": key, "tags": {p.id: p.tags for p in out}}), encoding="utf-8")
+        except OSError:
+            pass  # Read-only: it'll tag them again next time
+    return out
 
 
 PROCLAMATIONS = load()
@@ -105,7 +181,12 @@ ROUTINE = re.compile(r"\b(prorog|adiourn|adjourn|continu\w* (of )?(the )?parliam
 
 
 def weight(proclamation: Proclamation) -> int:
-    return 1 if ROUTINE.search(proclamation.title) else 3
+    """How often it comes up, against the others. The full texts more than Steele's summaries (there are four
+    times as many of them), and his summaries with an abstract more than the bare titles."""
+    routine = ROUTINE.search(proclamation.headline)
+    if proclamation.calendar:
+        return (1 if routine else 2) + bool(proclamation.paragraphs)
+    return 2 if routine else 6
 
 
 WEIGHTS = {p.id: weight(p) for p in PROCLAMATIONS}
@@ -139,13 +220,13 @@ def on_date(proclamation: Proclamation, on: str) -> bool:
 def matching(limits: dict[str, int] = UNLIMITED, hidden: set[str] = frozenset(), realm: str = "", monarch: str = "",
              about: str = "", kind: re.Pattern | None = None, on: str = "") -> list[Proclamation]:
     """The proclamations these limits allow (content.py) and aren't hidden, of this realm and monarch and about these
-    words, if given. `kind` must match the heading or title: WANTED for the ones for apprehending someone. `on` is a
+    words, if given. `kind` must match what it's called (names): WANTED for the ones for apprehending someone. `on` is a
     day ("10-18") or month ("10") of any year."""
     patterns = words_in(about)
     return [p for p in PROCLAMATIONS if p.id not in hidden and content.allowed(p.tags, limits)
             and (not realm or p.realm == realm) and (not monarch or p.monarch == monarch)
             and all(pattern.search(p.text) for pattern in patterns)
-            and (kind is None or kind.search(" ".join(p.heading + (p.title,)))) and (not on or on_date(p, on))]
+            and (kind is None or kind.search(p.names)) and (not on or on_date(p, on))]
 
 
 def pick(where: int, limits: dict[str, int] = UNLIMITED, hidden: set[str] = frozenset(), realm: str = "",
@@ -162,12 +243,14 @@ def pick(where: int, limits: dict[str, int] = UNLIMITED, hidden: set[str] = froz
 
 
 # Proclamations for catching someone: "for the apprehension of", "for discovering and apprehending", "offering a
-# reward for". /wanted reads these out.
-WANTED = re.compile(r"\bapprehen|\bdisco[uv]er\w* and apprehen|\bfor the taking of|\boffering a reward", re.I)
+# reward for", and Steele's "For the arrest of the murderers of …". /wanted reads these out.
+WANTED = re.compile(r"\bapprehen|\bdisco[uv]er\w* and apprehen|\bfor the taking of|\boffering a reward|"
+                    r"\bfor the arrest of|\breward for (the )?(arrest|discovery|apprehen|taking)", re.I)
 NUMBER_WORDS = (r"(?:an?|one|two|three|four|fiue|five|six|seuen|seven|eight|nine|ten|tenne|eleuen|eleven|twelue|"
                 r"twelve|\w+teen|twenty|thirty|forty|fourty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|and)")
+# "Five hundred pounds", "two thousand merks", and Steele's "£40"
 MONEY = re.compile(rf"\b((?:{NUMBER_WORDS}[\s-]+){{0,6}}{NUMBER_WORDS}|\d[\d,]*)\s+(pounds?|merks|markes|marks|"
-                   rf"guineas|crownes|crowns)\b", re.I)
+                   rf"guineas|crownes|crowns)\b|£\s?\d[\d,]*", re.I)
 
 
 def reward(proclamation: Proclamation) -> str:
@@ -176,9 +259,12 @@ def reward(proclamation: Proclamation) -> str:
     promise to bestow vpon such person as shall apprehend the said Feild … the summe of tenne Pounds")."""
     money = None
     for found in re.finditer(r"\breward", proclamation.text, re.I):
-        if money := MONEY.search(proclamation.text, found.end(), found.end() + 250):
+        # Steele puts the sum first ("£40 reward for…"), the proclamations after
+        if money := MONEY.search(proclamation.text, found.end(), found.end() + 250) or \
+                re.search(rf"(?:{MONEY.pattern})\s*$", proclamation.text[max(0, found.start() - 30):found.start()],
+                          re.I):
             break
-    if not money and WANTED.search(" ".join(proclamation.heading + (proclamation.title,))):
+    if not money and WANTED.search(proclamation.names):
         money = next((found for found in MONEY.finditer(proclamation.text)
                       if re.search(r"\bsumm?e? of\s*$", proclamation.text[max(0, found.start() - 12):found.start()],
                                    re.I)), None)
@@ -217,7 +303,25 @@ def quote(text: str) -> str:
     return "\n".join(f"> {line}" if line else ">" for line in discord.utils.escape_markdown(text).split("\n"))
 
 
+def calendar_description(proclamation: Proclamation, tidy) -> str:
+    """Steele's entry: his summary (when the title doesn't already say it), the opening words as printed, and his
+    abstract."""
+    escape = discord.utils.escape_markdown
+    parts = []
+    if proclamation.summary and proclamation.title:
+        parts.append(f"*{escape(proclamation.summary)}*")
+    if proclamation.opening:
+        parts.append(quote(tidy(f"{proclamation.opening} …")))
+    if proclamation.paragraphs:
+        parts.append(escape(clip(proclamation.paragraphs[0], 3000)))
+    if not parts:
+        parts.append("*Steele gives only its title.*")
+    return "\n\n".join(parts)[:4096]
+
+
 def embed(proclamation: Proclamation, modern: bool = False, title: str = "") -> discord.Embed:
+    if proclamation.calendar:
+        return calendar_embed(proclamation, modern, title)
     tidy = spelling.modern if modern else (lambda text: text)
     heading = tidy(" ".join(proclamation.heading)) or tidy(proclamation.title)
     result = discord.Embed(title=clip(title or heading, 256), url=proclamation.url, color=COLOR,
@@ -238,6 +342,35 @@ def embed(proclamation: Proclamation, modern: bool = False, title: str = "") -> 
     result.add_field(name="Read it all", value=f"[The full text]({proclamation.url}) · "
                                                f"[transcription]({proclamation.source_url})", inline=False)
     footer = f"{SOURCE} · #{proclamation.id}"
+    if modern:
+        footer += " · spelling tidied"
+    result.set_footer(text=footer)
+    return result
+
+
+def calendar_embed(proclamation: Proclamation, modern: bool = False, title: str = "") -> discord.Embed:
+    """One known from Steele's calendar: his summary of it, linked to his page."""
+    tidy = spelling.modern if modern else (lambda text: text)
+    headline = tidy(proclamation.headline)
+    description = calendar_description(proclamation, tidy)
+    if title:
+        description = f"**{discord.utils.escape_markdown(clip(headline, 300))}**\n{description}"[:4096]
+    result = discord.Embed(title=clip(title or headline, 256), url=proclamation.url, color=COLOR,
+                           description=description)
+    author = " · ".join(part for part in (REALMS[proclamation.realm], proclamation.by, proclamation.when) if part)
+    result.set_author(name=clip(author, 256))
+    if amount := reward(proclamation):
+        result.add_field(name="💰 Reward", value=amount, inline=False)
+    if proclamation.dateline:
+        result.add_field(name="Given", value=clip(proclamation.dateline, 1024), inline=False)
+    if proclamation.signed:
+        result.add_field(name="Signed", value=clip(", ".join(proclamation.signed), 1024), inline=False)
+    page = f", page {proclamation.page}" if proclamation.page else ""
+    result.add_field(name="Where it's from", inline=False, value=clip(
+        f"{STATUS.get(proclamation.status, '')} Known from [Steele's calendar{page}]({proclamation.url}): "
+        "his summary, not its own words.".strip(), 1024))
+    number = f"No. {proclamation.number} · " if proclamation.number else ""
+    footer = f"{CALENDAR_SOURCE} · {number}#{proclamation.id}"
     if modern:
         footer += " · spelling tidied"
     result.set_footer(text=footer)

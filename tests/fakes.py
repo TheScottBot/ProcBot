@@ -62,7 +62,7 @@ class Interaction:
         self.guild_id = self.guild.id if self.guild else None
         self.channel = thread or types.SimpleNamespace(id=channel_id)
         self.channel_id = thread.id if thread else channel_id
-        self.client = types.SimpleNamespace(user=User(999, "procbot"))
+        self.client = types.SimpleNamespace(user=User(999, "ProcBot"))
         self.response = Response(self)
         self.sent: list[Sent] = []
 

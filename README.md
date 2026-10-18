@@ -1,12 +1,20 @@
-# procbot
+<p align="center"><img src="assets/discord-banner.png" alt="ProcBot: a pink scroll with a crowned wax seal. Proclamations of your Server"></p>
+
+# ProcBot
 
 A Discord bot that reads out real proclamations of the kings, queens, lords lieutenant and privy councils of
-England, Ireland and Scotland, 1485-1700, as they were printed and posted up: against tobacco, starch and coffee
-houses, for the apprehension of traitors, on plague, Jesuits and the price of ale.
-
-About 1,800 of them, from the [Text Creation Partnership](https://textcreationpartnership.org/)'s transcriptions of
-Early English Books Online, which are public domain (CC0). Each links to its full text. Built the way
+England, Ireland and Scotland, 1485-1714, as they were printed and posted up: against tobacco, starch and coffee
+houses, for the apprehension of traitors, on plague, Jesuits and the price of ale. Built the way
 [Hammered of Witches](https://github.com/TheScottBot/Hammered-of-Witches) is.
+
+8,790 of them (4,065 English, 3,271 Scottish, 1,454 Irish), from two public-domain sources:
+
+- **1,812 in full**, from the [Text Creation Partnership](https://textcreationpartnership.org/)'s transcriptions of
+  Early English Books Online (CC0), 1509-1700. Each links to its full text.
+- **6,978 as summaries**, from Robert Steele's calendar of every proclamation he knew of, *A Bibliography of Royal
+  Proclamations of the Tudor and Stuart Sovereigns 1485-1714* (1910): the date, who issued it, its title or first
+  words, and Steele's summary of what it says. Read from the Wellcome Library's scans on archive.org, so with the
+  odd OCR slip; each links to its page. Most of the Irish ones are only here.
 
 ## Commands
 
@@ -28,8 +36,8 @@ Early English Books Online, which are public domain (CC0). Each links to its ful
 
 Searches find old spellings too: `jesuit` finds "Iesuites". Dates are as printed: Old Style, the Julian calendar,
 ten or eleven days behind ours, and until 1752 the English and Irish year began on 25 March. "On this day" goes by
-the printed date. The Proclamation of the Day is one given on that day of the year when one survives (349 days
-of the year have one under the default filters), and follows its channel's filters.
+the printed date. The Proclamation of the Day is one given on that day of the year (every day of the year has
+one), and follows its channel's filters.
 
 ### Filters
 
@@ -46,7 +54,7 @@ by keyword (`procbot/content.py`), and each server, or channel, chooses how much
 | `lgbt` | "The detestable vice of buggery", sodomy. `/setup lgbt level:off` makes the bot LGBTQ+-friendly |
 | `plague` | The plague and pestilence; infection and sickness |
 
-The default (Tasteful) allows 1,650 of the 1,812; Tame 1,224.
+The default (Tasteful) allows 8,204 of the 8,790; Tame 7,196.
 
 ## Running it
 
@@ -61,12 +69,24 @@ On Linux, `deploy/procbot.service` runs it from `/opt/procbot`. Tests: `python -
 
 ## The data
 
-`procbot/data/proclamations.json` is built by `python -m procbot.tools.proclamations_build` (no extra
-dependencies). It reads the Text Creation Partnership's catalogue, picks out the proclamations, downloads their
-TEI XML into `build/tcp/` (once), and keeps the text as printed, with long s as s and broken words joined.
-`--offline` rebuilds from what's downloaded. See the tool's docstring for how proclamations, realms, monarchs and
-dates are worked out.
+Two files, each built by a tool (no extra dependencies; `--offline` rebuilds from what's already downloaded into
+`build/`, which isn't kept). Build them in this order:
 
-Further reading: Robert Steele, *Tudor and Stuart Proclamations 1485-1714* (1910), and James Kelly and Mary Ann
-Lyons (eds.), *The Proclamations of Ireland 1660-1820* (Irish Manuscripts Commission, 2014; in copyright, so not
-used here).
+1. `python -m procbot.tools.proclamations_build` → `procbot/data/proclamations.json`. It reads the Text Creation
+   Partnership's catalogue, picks out the proclamations, downloads their TEI XML, and keeps the text as printed,
+   with long s as s and broken words joined.
+2. `python -m procbot.tools.steele_build` → `procbot/data/calendar.json`. It reads archive.org's OCR of Steele's
+   two volumes page by page, splits it into entries (date, issuer, title or opening, Steele's summary and
+   abstract, signatories, page), and marks the ones the first file has the text of, which the bot leaves out.
+
+Each tool's docstring says how it works things out. The bot tags every proclamation for the filters when it
+starts, and keeps the tags in `build/tags.json` until `content.py` or the data changes.
+
+Further reading: James Kelly and Mary Ann Lyons (eds.), *The Proclamations of Ireland 1660-1820* (Irish
+Manuscripts Commission, 2014), which prints the Irish ones in full; it's in copyright, so not used here.
+
+## Artwork
+
+In `assets/`, as for Hammered of Witches: `icon.png` (1254 × 1254, the app icon; its pink is the embeds' colour),
+`discord-banner.png` (2111 × 745, the bot's profile banner and this README's header) and `rich-presence.png`
+(1672 × 941, 16:9, the Rich Presence invite image).

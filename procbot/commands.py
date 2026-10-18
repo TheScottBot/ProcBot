@@ -18,7 +18,7 @@ from procbot import config, content, daily, db, decree, proclamations, spelling
 
 log = logging.getLogger("procbot")
 NO_PINGS = discord.AllowedMentions.none()
-DECREE_COLOR = discord.Color.from_str("#6B5B3E")  # Iron-gall ink: not the real ones' red
+DECREE_COLOR = discord.Color.from_str("#6B5B3E")  # Iron-gall ink: not the real ones' pink
 
 REALM_CHOICES = [app_commands.Choice(name=name.split(" ", 1)[1], value=key)
                  for key, name in proclamations.REALMS.items()]
@@ -58,7 +58,7 @@ async def monarch_names(interaction: discord.Interaction, current: str) -> list[
 
 
 @app_commands.command(name="proclaim", description="Read out a real royal proclamation of England, Ireland or "
-                                                   "Scotland (1485-1700).")
+                                                   "Scotland (1485-1714).")
 @app_commands.describe(about="Only proclamations that mention this, e.g. tobacco, starch, coffee, ale, plague",
                        realm="Only England's, Ireland's or Scotland's",
                        monarch="Only those under this monarch",
@@ -68,8 +68,9 @@ async def monarch_names(interaction: discord.Interaction, current: str) -> list[
 @app_commands.autocomplete(monarch=monarch_names)
 async def proclaim(interaction: discord.Interaction, about: str = "", realm: app_commands.Choice[str] | None = None,
                    monarch: str = "", modern: bool = False, id: str = ""):
-    """A random proclamation, as printed, from the transcriptions of the Text Creation Partnership: who issued it,
-    when, the opening, and what it commands, linked to the full text. Give `about:` for ones that mention something
+    """A random proclamation: who issued it, when, the opening, and what it commands, as printed, linked to the
+    full text; or, for one there's no transcription of, Robert Steele's summary of it from his 1910 calendar, linked
+    to his page. Give `about:` for ones that mention something
     (all the words you give; old spellings are found too, so `jesuit` finds "Iesuites"), and `realm:` or `monarch:`
     to narrow it down. `modern:True` tidies the spelling. Only what the filters here allow (`/setup`). Dates are as
     printed: until 1752 the English year began on 25 March."""
@@ -121,11 +122,11 @@ async def wanted(interaction: discord.Interaction, suspect: discord.User, modern
 
 
 @app_commands.command(name="onthisday", description="A proclamation given on this day of the year, any year "
-                                                    "(1509-1700).")
+                                                    "(1485-1714).")
 @app_commands.describe(day="Another day, e.g. 5 November or March 25 (today if not given)",
                        modern="Tidy the old printers' spelling")
 async def onthisday(interaction: discord.Interaction, day: str = "", modern: bool = False):
-    """A proclamation given on today's date (or the `day:` you give) in some year between 1509 and 1700, or if
+    """A proclamation given on today's date (or the `day:` you give) in some year between 1485 and 1714, or if
     none survives from that day, one from that month. Dates are as printed: before 1752 that's Old Style, ten or
     eleven days behind our calendar. Only what the filters here allow."""
     try:
@@ -405,16 +406,18 @@ async def here_reset(interaction: discord.Interaction):
 
 # --- /help ---
 
-@app_commands.command(name="help", description="What procbot does, where its proclamations come from, and filters.")
+@app_commands.command(name="help", description="What ProcBot does, where its proclamations come from, and "
+                                               "filters.")
 async def help_command(interaction: discord.Interaction):
     counts = {realm: sum(p.realm == realm for p in proclamations.PROCLAMATIONS) for realm in proclamations.REALMS}
     embed = discord.Embed(
-        title="📜 procbot", color=proclamations.COLOR,
+        title="📜 ProcBot", color=proclamations.COLOR,
         description="Real proclamations of the kings, queens, lords lieutenant and privy councils of England, "
-                    "Ireland and Scotland, 1485-1700, as they were printed and posted up: against tobacco, starch "
+                    "Ireland and Scotland, 1485-1714, as they were printed and posted up: against tobacco, starch "
                     "and coffee houses; for the apprehension of traitors; on plague, Jesuits and the price of ale. "
                     f"{len(proclamations.PROCLAMATIONS):,} of them: "
                     + ", ".join(f"{counts[key]:,} {name}" for key, name in proclamations.REALMS.items()) + ".")
+    texts = sum(not p.calendar for p in proclamations.PROCLAMATIONS)
     embed.add_field(name="Commands", inline=False, value=(
         "`/proclaim [about] [realm] [monarch] [modern]`: a random proclamation, or one about something\n"
         "`/proclaim id:#a39500`: a particular one, by the id in its footer\n"
@@ -432,13 +435,17 @@ async def help_command(interaction: discord.Interaction):
         + ". New servers start on Tasteful. One that slips through can be hidden with `/setup hide`, and "
           "`/setup here ...` gives just the channel you're in rules of its own."))
     embed.add_field(name="Where they come from", inline=False, value=(
-        "The [Text Creation Partnership](https://textcreationpartnership.org/)'s transcriptions of Early English "
-        "Books Online, which it gave to the public domain (CC0). Each links to its full text. The spelling is as "
-        "printed, and so are the dates: until 1752 the English and Irish year began on 25 March."))
+        f"**{texts:,} in full**, from the [Text Creation Partnership](https://textcreationpartnership.org/)'s "
+        "transcriptions of Early English Books Online, which it gave to the public domain. Each links to its "
+        "full text.\n"
+        f"**{len(proclamations.PROCLAMATIONS) - texts:,} as summaries**, from Robert Steele's calendar of every "
+        "proclamation he knew of, *Tudor and Stuart Proclamations 1485-1714* (1910): his words, not theirs, read "
+        "from a scan, so with the odd misprint. Each links to his page.\n"
+        "The spelling is as printed, and so are the dates: until 1752 the English and Irish year began on "
+        "25 March."))
     embed.add_field(name="Further reading", inline=False, value=(
-        "Robert Steele, *Tudor and Stuart Proclamations 1485-1714* (1910), which lists every one known; and "
         "James Kelly and Mary Ann Lyons (eds.), *The Proclamations of Ireland 1660-1820* (Irish Manuscripts "
-        "Commission, 2014)."))
+        "Commission, 2014), which prints the Irish ones in full."))
     embed.set_footer(text="Tagging is done by keyword, so it errs on the strict side, but isn't perfect.")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 

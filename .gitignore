@@ -10,5 +10,5 @@ venv/
 *.db
 logs/
 
-# TEI XML downloaded by python -m procbot.tools.proclamations_build; only procbot/data/proclamations.json is kept
+# Downloads for the build tools (TEI XML, Steele's OCR) and the bot's cache of tags; only procbot/data/ is kept
 build/

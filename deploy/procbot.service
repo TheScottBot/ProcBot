@@ -1,8 +1,8 @@
-# systemd service for procbot, checked out at /opt/procbot and run as the "procbot" user.
+# systemd service for ProcBot, checked out at /opt/procbot and run as the "procbot" user.
 #   sudo cp /opt/procbot/deploy/procbot.service /etc/systemd/system/ && sudo systemctl daemon-reload
 #   sudo systemctl enable --now procbot      (logs: journalctl -u procbot -f)
 [Unit]
-Description=procbot Discord bot
+Description=ProcBot Discord bot
 After=network-online.target
 Wants=network-online.target
 

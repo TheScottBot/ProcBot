@@ -96,7 +96,7 @@ def test_proclaim_in_a_dm_uses_the_default():
 @pytest.mark.parametrize("suspect, title", [
     (User(2, "agnes"), "🔔 WANTED: agnes"),
     (User(1, "scott"), "🙇 scott has surrendered to the Crown"),
-    (User(999, "procbot"), "📜 The Crown does not apprehend itself"),
+    (User(999, "ProcBot"), "📜 The Crown does not apprehend itself"),
 ])
 def test_wanted(suspect, title):
     interaction = Interaction()
@@ -104,7 +104,7 @@ def test_wanted(suspect, title):
     assert interaction.last.embed.title == title
     assert interaction.last.allowed_mentions == commands.NO_PINGS and suspect.mention in interaction.last.content
     p = shown(interaction)
-    assert proclamations.WANTED.search(" ".join(p.heading + (p.title,)))
+    assert proclamations.WANTED.search(p.names)
     assert content.allowed(p.tags, content.DEFAULT.limits)
 
 
