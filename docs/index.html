@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ProcBot</title>
+  <meta name="description" content="A Discord bot that reads out real royal proclamations of England, Ireland and Scotland, 1485-1714, filtered to your server's taste.">
+  <meta property="og:title" content="ProcBot">
+  <meta property="og:description" content="Real royal proclamations of England, Ireland and Scotland, 1485-1714: against tobacco, starch and coffee houses, for the apprehension of traitors.">
+  <meta property="og:image" content="https://thescottbot.github.io/ProcBot/banner.jpg">
+  <meta property="og:url" content="https://thescottbot.github.io/ProcBot/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#ff1a70">
+  <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <div class="hero">
+    <img src="banner.jpg" alt="A pink scroll with a crowned wax seal. ProcBot: Proclamations of your Server" width="1280" height="452">
+    <h1 class="visually-hidden">ProcBot</h1>
+    <p class="tagline">Real royal proclamations, 1485-1714, read out in Discord.</p>
+    <!-- TODO: replace CLIENT_ID with the bot's application ID. -->
+    <a class="button" href="https://discord.com/oauth2/authorize?client_id=CLIENT_ID&amp;permissions=18432&amp;integration_type=0&amp;scope=bot+applications.commands">Add to Discord</a>
+  </div>
+
+  <h2>By the King, a proclamation</h2>
+  <p>For two centuries, the Crown spoke to its subjects by proclamation: printed by the King's printer, read aloud in
+    the market place and nailed up on church doors. Kings, queens, lords lieutenant and privy councils of England,
+    Ireland and Scotland issued thousands of them, against tobacco, starch and coffee houses, for the apprehension of
+    traitors, on plague, Jesuits and the price of ale.</p>
+  <blockquote>It is now by the Inland plantation become promiscuous, and begun to be taken in euery meane Uillage,
+    euen amongst the basest people.<br>(James I, on tobacco, 1619)</blockquote>
+  <p>ProcBot reads them out in your server: 8,790 of them, from 1485 to 1714. 1,812 are in full, as printed, from
+    the Text Creation Partnership's public-domain transcriptions of Early English Books Online. The rest are Robert
+    Steele's summaries from his 1910 calendar of every proclamation he knew of. Each one links to its source.</p>
+
+  <h2>Commands</h2>
+  <ul>
+    <li><code>/proclaim</code>: a random proclamation, or <code>/proclaim about:tobacco</code> for one on a topic,
+      by realm or monarch too</li>
+    <li><code>/wanted @someone</code>: proclaim your friend a traitor, with a real proclamation for apprehending
+      one</li>
+    <li><code>/decree thing</code>: have a (made-up) proclamation against anything, in the Crown's own words</li>
+    <li><code>/onthisday</code>: one given on this day of the year</li>
+    <li><code>/setup daily here</code>: a Proclamation of the Day in a channel</li>
+    <li><code>/setup</code>: what your server sees (needs Manage Server)</li>
+    <li><code>/help</code>: all of the above, in Discord</li>
+  </ul>
+
+  <h2>Your server, your taste</h2>
+  <p>These are the state's own words, and some of them are ugly: "papists" banished, bounties "dead or alive",
+    "the detestable vice of buggery". Rather than cut them for everyone, every proclamation is tagged, and each
+    server chooses what to keep: <code>/setup religion level:mild</code>, <code>/setup lgbt level:off</code>, and
+    so on, or a preset from Tame to Unabridged. New servers start on a tasteful middle ground.</p>
+  <p><code>/setup here</code> gives one channel its own rules: an Unabridged history channel, say, while the rest of
+    the server stays Tame.</p>
+
+  <footer>
+    <a href="terms.html">Terms of Service</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="https://github.com/TheScottBot/ProcBot">GitHub</a>
+  </footer>
+</main>
+</body>
+</html>

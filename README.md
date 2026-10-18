@@ -16,6 +16,11 @@ houses, for the apprehension of traitors, on plague, Jesuits and the price of al
   words, and Steele's summary of what it says. Read from the Wellcome Library's scans on archive.org, so with the
   odd OCR slip; each links to its page. Most of the Irish ones are only here.
 
+**[Add it to your server](https://discord.com/oauth2/authorize?client_id=CLIENT_ID&permissions=18432&integration_type=0&scope=bot+applications.commands)**
+· [Website](https://thescottbot.github.io/ProcBot/)
+· [Terms of Service](https://thescottbot.github.io/ProcBot/terms.html)
+· [Privacy Policy](https://thescottbot.github.io/ProcBot/privacy.html)
+
 ## Commands
 
 | Command | What it does |
@@ -85,8 +90,17 @@ starts, and keeps the tags in `build/tags.json` until `content.py` or the data c
 Further reading: James Kelly and Mary Ann Lyons (eds.), *The Proclamations of Ireland 1660-1820* (Irish
 Manuscripts Commission, 2014), which prints the Irish ones in full; it's in copyright, so not used here.
 
+## Website
+
+The site, with the Terms of Service and Privacy Policy that Discord asks for, is plain HTML in `docs/`, served by
+GitHub Pages: Settings → Pages → Deploy from a branch → `main`, folder `/docs`. `docs/DISCORD_LISTING.md` has the
+copy for the Developer Portal and App Directory. The privacy policy promises the bot stores nothing about users, so
+keep it true: no user IDs or names in the database or the logs. The invite links (here, `docs/index.html` and the
+listing) need the bot's application ID in place of `CLIENT_ID`.
+
 ## Artwork
 
 In `assets/`, as for Hammered of Witches: `icon.png` (1254 × 1254, the app icon; its pink is the embeds' colour),
 `discord-banner.png` (2111 × 745, the bot's profile banner and this README's header) and `rich-presence.png`
-(1672 × 941, 16:9, the Rich Presence invite image).
+(1672 × 941, 16:9, the Rich Presence invite image). `docs/` has the site's copies: `icon.png` (512 × 512),
+`favicon.png` (64 × 64) and `banner.jpg` (1280 × 452, from the profile banner).

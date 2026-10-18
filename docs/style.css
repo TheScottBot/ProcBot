@@ -1,0 +1,86 @@
+:root {
+  --bg: #000;
+  --text: #ece6ea;
+  --muted: #a99fa6;
+  --pink: #ff1a70;
+  --rule: #2a2228;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 18px/1.6 "IM Fell English", Georgia, "Times New Roman", serif;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 3rem 1rem 4rem;
+}
+
+a { color: var(--pink); }
+a:hover { text-decoration-thickness: 2px; }
+
+h1, h2 { font-weight: normal; line-height: 1.2; }
+h1 { font-size: 2.4rem; margin: 0.5rem 0 0.25rem; color: var(--pink); }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; color: var(--pink); }
+
+.hero { text-align: center; }
+.hero img { width: 100%; height: auto; }
+.tagline { color: var(--muted); font-style: italic; margin-top: 0; }
+
+/* The banner already says "ProcBot", so the page's heading is for screen readers and search engines only. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.button {
+  display: inline-block;
+  margin: 1.5rem 0 0.5rem;
+  padding: 0.7rem 1.6rem;
+  border-radius: 999px;
+  background: var(--pink);
+  color: #000;
+  font-family: system-ui, sans-serif;
+  font-weight: 700;
+  text-decoration: none;
+}
+.button:hover { filter: brightness(1.1); }
+
+blockquote {
+  margin: 1.5rem 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 3px solid var(--pink);
+  color: var(--muted);
+  font-style: italic;
+}
+
+code {
+  font: 0.85em ui-monospace, Consolas, monospace;
+  background: #1c161a;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+ul { padding-left: 1.25rem; }
+li { margin: 0.3rem 0; }
+
+.updated { color: var(--muted); font-style: italic; }
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+footer a { margin: 0 0.5rem; }

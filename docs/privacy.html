@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy · ProcBot</title>
+  <link rel="icon" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <p><a href="./">← ProcBot</a></p>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated 18 October 2026</p>
+
+  <p>The short version: the bot doesn't store anything about you.</p>
+
+  <h2>What it never collects</h2>
+  <ul>
+    <li><strong>Your messages.</strong> It only answers slash commands, and never asks Discord for access to what's
+      said in chat.</li>
+    <li><strong>Who you are.</strong> No user IDs, usernames or profiles are saved, including who ran a command or
+      who was declared <code>/wanted</code>.</li>
+    <li><strong>What you searched for.</strong> What you type in <code>/proclaim about:</code> or
+      <code>/decree</code> is used to answer you and then forgotten.</li>
+  </ul>
+
+  <h2>What it does keep</h2>
+  <p>Only each server's choices, and only for servers that make them with <code>/setup</code>:</p>
+  <ul>
+    <li>the server's ID;</li>
+    <li>its filter levels (for example, "violence: mild");</li>
+    <li>the IDs of any channels given filters of their own with <code>/setup here</code>, and those filters;</li>
+    <li>the IDs of any proclamations it has hidden;</li>
+    <li>if it has a Proclamation of the Day, the ID of the channel it goes to and the time it's posted.</li>
+  </ul>
+  <p>Filters and hidden proclamations are deleted when a server admin runs <code>/setup reset</code>, and the daily
+    post's channel and time by <code>/setup daily stop</code>. Everything is deleted when the bot is removed from the
+    server. A channel's filters are also deleted by <code>/setup here reset</code>, and a channel's filters and daily
+    post when the channel is deleted.</p>
+
+  <h2>While it's running</h2>
+  <p>Discord sends the bot what it needs to answer a command: the command, its options, and the server, channel and
+    user it came from. The bot uses that to reply and doesn't save it. To avoid repeating itself, it remembers the
+    last few proclamations shown in each server (or DM) in memory only; that's gone whenever the bot restarts.</p>
+  <p>Its log records which command ran and in which server (by ID), the settings changed with <code>/setup</code>,
+    when daily posts go out, and any errors, so problems can be fixed. Logs
+    don't include who ran a command or what they searched for, and old logs are overwritten as new ones are written.</p>
+
+  <h2>Sharing</h2>
+  <p>Nothing is sold or shared with anyone. The only other party involved is Discord itself, under
+    <a href="https://discord.com/privacy">Discord's Privacy Policy</a>.</p>
+
+  <h2>Changes and contact</h2>
+  <p>If this policy changes, this page will say so. Questions, or want something deleted? Open an issue on
+    <a href="https://github.com/TheScottBot/ProcBot/issues">GitHub</a>.</p>
+
+  <footer>
+    <a href="./">Home</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="https://github.com/TheScottBot/ProcBot">GitHub</a>
+  </footer>
+</main>
+</body>
+</html>
