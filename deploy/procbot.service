@@ -13,7 +13,7 @@ ExecStart=/opt/procbot/.venv/bin/python /opt/procbot/bot.py
 Restart=on-failure
 RestartSec=10
 
-# It only needs to write its logs (and, later, its database), in /opt/procbot.
+# It only needs to write its database and logs, in /opt/procbot.
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true

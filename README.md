@@ -14,10 +14,33 @@ Early English Books Online, which are public domain (CC0). Each links to its ful
 |---|---|
 | `/proclaim [about] [realm] [monarch] [modern]` | A random proclamation, or one that mentions something: `about: tobacco`, `realm: Ireland`, `monarch: Elizabeth I`. `modern: True` tidies the printers' spelling (vnto, haue, Maiestie) |
 | `/proclaim id:#a39500` | A particular one, by the id in its footer |
+| `/setup show` | This server's filters, and how many proclamations they allow |
+| `/setup preset` | Every filter at once: 🕊️ Tame, ⚖️ Tasteful (the default), 🪓 Grim, 📜 Unabridged |
+| `/setup <category> level:` | One filter: **off** (none of it), **mild** (passing mentions), **full** (anything) |
+| `/setup hide` / `unhide` | Hide one proclamation that slipped through, by the `#id` in its footer |
+| `/setup reset` | Back to the default in every channel, with nothing hidden |
+| `/setup here …` | The same for just the channel you're in: `here show`, `here preset`, `here <category>`, `here reset` |
 | `/help` | The above, in Discord |
 
 Searches find old spellings too: `jesuit` finds "Iesuites". Dates are as printed (Old Style: until 1752 the English
 and Irish year began on 25 March).
+
+### Filters
+
+The proclamations are the state's voice, and some of it is ugly. As in Hammered of Witches, every one is tagged
+by keyword (`procbot/content.py`), and each server, or channel, chooses how much of each category it allows.
+`/setup` needs **Manage Server**, and its replies are only visible to whoever ran it.
+
+| `/setup …` | Covers |
+|---|---|
+| `religion` | "Papists", "popery" and "idolatry"; Jesuits banished, recusants fined, Quakers and conventicles broken up |
+| `peoples` | "Savages", "blackamoors", Jews, "Egyptians" (Romani people), "wild Irish"; Turks, Moors, Highland "broken men" |
+| `violence` | Hanging, drawing and quartering, bounties "dead or alive", massacres; "upon pain of death" in passing |
+| `sex` | Rape and "ravishing"; whores, bawdy-houses, adultery |
+| `lgbt` | "The detestable vice of buggery", sodomy. `/setup lgbt level:off` makes the bot LGBTQ+-friendly |
+| `plague` | The plague and pestilence; infection and sickness |
+
+The default (Tasteful) allows 1,650 of the 1,812; Tame 1,224.
 
 ## Running it
 

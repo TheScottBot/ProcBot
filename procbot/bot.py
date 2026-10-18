@@ -6,7 +6,7 @@ from logging.handlers import RotatingFileHandler
 import discord
 from discord import app_commands
 
-from procbot import config
+from procbot import config, db
 from procbot.commands import COMMANDS
 
 log = logging.getLogger("procbot")
@@ -60,6 +60,14 @@ class ProcBot(discord.Client):
     async def on_ready(self):
         log.info("Logged in as %s (ID: %s), in %d servers", self.user, self.user.id, len(self.guilds))
 
+    async def on_guild_remove(self, guild: discord.Guild):
+        db.forget(guild.id)  # Removed from a server: its filters and hidden proclamations go too.
+        log.info("Removed from server %s; forgot its settings", guild.id)
+
+    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
+        if db.forget_channel(channel.id):  # A deleted channel's own filters go with it.
+            log.info("Channel %s deleted; forgot its filters", channel.id)
+
     async def on_app_command_completion(self, interaction: discord.Interaction, command):
         # Which command ran, and in which server: never who ran it, or what they searched for.
         log.info("[%s] /%s", interaction.guild_id or "DM", command.qualified_name)
@@ -81,4 +89,5 @@ def main():
     if not config.DISCORD_TOKEN:
         raise SystemExit(f"DISCORD_TOKEN is not set. Copy .env.example to {config.ENV_FILE} and add your token.")
     setup_logging()
+    db.init(config.DB_PATH)
     ProcBot().run(config.DISCORD_TOKEN, log_handler=None)

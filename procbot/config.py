@@ -31,4 +31,5 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 # Optional: servers to register the slash commands to directly, so changes show up instantly (handy while testing).
 # Leave empty for a public bot: commands are registered globally, for every server it's in.
 GUILD_IDS = parse_ids("GUILD_IDS")
+DB_PATH = str(BASE_DIR / os.getenv("DB_PATH", "procbot.db"))
 LOG_FILE = BASE_DIR / os.getenv("LOG_FILE", "logs/procbot-dev.log" if DEV else "logs/procbot.log")

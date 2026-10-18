@@ -10,7 +10,7 @@ from pathlib import Path
 
 import discord
 
-from procbot import spelling
+from procbot import content, spelling
 
 DATA = Path(__file__).resolve().parent / "data"
 COLOR = discord.Color.from_str("#9E1B32")  # Sealing-wax red
@@ -39,10 +39,12 @@ class Proclamation:
     dateline: str = ""  # "Given at our Court at Whitehall, the…"
     place: str = ""  # Where it was printed
     printer: str = ""
-    text: str = field(init=False, repr=False, compare=False)
+    text: str = field(init=False, repr=False, compare=False)  # All of it, for searching and tagging
+    tags: dict = field(init=False, repr=False, compare=False)  # category -> level (content.py)
 
     def __post_init__(self):
         object.__setattr__(self, "text", " ".join(self.heading + (self.title,) + self.paragraphs))
+        object.__setattr__(self, "tags", content.tag(self.text))
 
     @property
     def url(self) -> str:
@@ -124,17 +126,23 @@ def spelling_twin(letter: str) -> str:
     return {"u": "v", "v": "u", "i": "jy", "j": "i", "y": "i"}.get(letter, "")
 
 
-def matching(realm: str = "", monarch: str = "", about: str = "", hidden: set[str] = frozenset()) -> list[Proclamation]:
+UNLIMITED = content.every(content.FULL)
+
+
+def matching(limits: dict[str, int] = UNLIMITED, hidden: set[str] = frozenset(), realm: str = "", monarch: str = "",
+             about: str = "") -> list[Proclamation]:
+    """The proclamations these limits allow (content.py) and aren't hidden, of this realm and monarch and about these
+    words, if given."""
     patterns = words_in(about)
-    return [p for p in PROCLAMATIONS if p.id not in hidden and (not realm or p.realm == realm)
-            and (not monarch or p.monarch == monarch) and all(pattern.search(p.text) for pattern in patterns)]
+    return [p for p in PROCLAMATIONS if p.id not in hidden and content.allowed(p.tags, limits)
+            and (not realm or p.realm == realm) and (not monarch or p.monarch == monarch)
+            and all(pattern.search(p.text) for pattern in patterns)]
 
 
-def pick(where: int, realm: str = "", monarch: str = "", about: str = "",
-         hidden: set[str] = frozenset()) -> Proclamation | None:
-    """A random proclamation (of this realm, monarch and about these words, if given), avoiding ones shown here
-    lately."""
-    candidates = matching(realm, monarch, about, hidden)
+def pick(where: int, limits: dict[str, int] = UNLIMITED, hidden: set[str] = frozenset(), realm: str = "",
+         monarch: str = "", about: str = "") -> Proclamation | None:
+    """A random proclamation that matching() allows, avoiding ones shown here lately."""
+    candidates = matching(limits, hidden, realm, monarch, about)
     if not candidates:
         return None
     shown = recent.setdefault(where, deque(maxlen=RECENT_SIZE))
