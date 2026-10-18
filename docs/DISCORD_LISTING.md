@@ -7,9 +7,8 @@ Copy for the Developer Portal (General Information) and the App Directory.
 - Terms of Service URL: https://thescottbot.github.io/ProcBot/terms.html
 - Privacy Policy URL: https://thescottbot.github.io/ProcBot/privacy.html
 - Website: https://thescottbot.github.io/ProcBot/
-- Invite: https://discord.com/oauth2/authorize?client_id=CLIENT_ID&permissions=18432&integration_type=0&scope=bot+applications.commands
-  (put the bot's application ID in place of `CLIENT_ID`, here, in `docs/index.html` and in the README; 18432 is
-  Send Messages and Embed Links)
+- Invite: https://discord.com/oauth2/authorize?client_id=1561334840178122752&permissions=18432&integration_type=0&scope=bot+applications.commands
+  (the bot's application ID is 1561334840178122752; 18432 is Send Messages and Embed Links)
 
 ## Description (388 / 400 characters)
 

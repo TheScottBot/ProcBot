@@ -16,7 +16,7 @@ houses, for the apprehension of traitors, on plague, Jesuits and the price of al
   words, and Steele's summary of what it says. Read from the Wellcome Library's scans on archive.org, so with the
   odd OCR slip; each links to its page. Most of the Irish ones are only here.
 
-**[Add it to your server](https://discord.com/oauth2/authorize?client_id=CLIENT_ID&permissions=18432&integration_type=0&scope=bot+applications.commands)**
+**[Add it to your server](https://discord.com/oauth2/authorize?client_id=1561334840178122752&permissions=18432&integration_type=0&scope=bot+applications.commands)**
 · [Website](https://thescottbot.github.io/ProcBot/)
 · [Terms of Service](https://thescottbot.github.io/ProcBot/terms.html)
 · [Privacy Policy](https://thescottbot.github.io/ProcBot/privacy.html)
@@ -96,7 +96,7 @@ The site, with the Terms of Service and Privacy Policy that Discord asks for, is
 GitHub Pages: Settings → Pages → Deploy from a branch → `main`, folder `/docs`. `docs/DISCORD_LISTING.md` has the
 copy for the Developer Portal and App Directory. The privacy policy promises the bot stores nothing about users, so
 keep it true: no user IDs or names in the database or the logs. The invite links (here, `docs/index.html` and the
-listing) need the bot's application ID in place of `CLIENT_ID`.
+listing) use the bot's application ID, 1561334840178122752.
 
 ## Artwork
 
