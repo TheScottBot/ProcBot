@@ -1,4 +1,4 @@
-"""The slash commands: /proclaim, /setup and /help.
+"""The slash commands: /proclaim, /wanted, /decree, /setup and /help.
 
 /setup is only shown to people with Manage Server (Discord's default_permissions; a server can change who sees it
 under Server Settings → Integrations). Its replies are only visible to whoever ran it.
@@ -13,9 +13,11 @@ import logging
 import discord
 from discord import app_commands
 
-from procbot import content, db, proclamations
+from procbot import content, db, decree, proclamations, spelling
 
 log = logging.getLogger("procbot")
+NO_PINGS = discord.AllowedMentions.none()
+DECREE_COLOR = discord.Color.from_str("#6B5B3E")  # Iron-gall ink: not the real ones' red
 
 REALM_CHOICES = [app_commands.Choice(name=name.split(" ", 1)[1], value=key)
                  for key, name in proclamations.REALMS.items()]
@@ -91,6 +93,65 @@ async def proclaim(interaction: discord.Interaction, about: str = "", realm: app
                                                     ephemeral=True)
             return
     await interaction.response.send_message(embed=proclamations.embed(proclamation, modern=modern))
+
+
+@app_commands.command(name="wanted", description="Proclaim someone a traitor, with a real proclamation for "
+                                                 "apprehending one.")
+@app_commands.describe(suspect="Who the Crown wants apprehended", modern="Tidy the old printers' spelling")
+async def wanted(interaction: discord.Interaction, suspect: discord.User, modern: bool = False):
+    """Names someone (without pinging them) as wanted by the Crown, with a real proclamation "for the apprehension
+    of" a traitor, rebel or highwayman, and the reward on their head when it says. Only what the filters here
+    allow."""
+    proclamation = proclamations.pick(where(interaction), limits_here(interaction), db.hidden(interaction.guild_id),
+                                      kind=proclamations.WANTED)
+    if proclamation is None:
+        await interaction.response.send_message("No proclamation for apprehending anyone gets past the filters here. "
+                                                "(`/setup here show` has them.)", ephemeral=True)
+        return
+    if suspect.id == interaction.client.user.id:
+        title = "📜 The Crown does not apprehend itself"
+    elif suspect.id == interaction.user.id:
+        title = f"🙇 {suspect.display_name} has surrendered to the Crown"
+    else:
+        title = f"🔔 WANTED: {suspect.display_name}"
+    embed = proclamations.embed(proclamation, modern=modern, title=title)
+    await interaction.response.send_message(f"{interaction.user.mention} has {suspect.mention} proclaimed a traitor.",
+                                            embed=embed, allowed_mentions=NO_PINGS)
+
+
+KIND_CHOICES = [app_commands.Choice(name=kind, value=kind) for kind in (decree.AGAINST, decree.FOR, decree.CONCERNING)]
+VOICE_CHOICES = [app_commands.Choice(name="the King", value="king"), app_commands.Choice(name="the Queen",
+                                                                                         value="queen")]
+
+
+def decree_embed(made: decree.Decree, by: str, modern: bool = False) -> discord.Embed:
+    tidy = spelling.modern if modern else (lambda text: text)
+    embed = discord.Embed(title=proclamations.clip(made.render(f"{made.heading} {made.title}", tidy), 256),
+                          color=DECREE_COLOR,
+                          description=proclamations.quote(made.render("\n".join(made.paragraphs), tidy))[:4096])
+    embed.set_author(name="Not a real proclamation")
+    embed.add_field(name="Given", value=f"{tidy(made.dateline)}\n*{tidy(made.closing)}*", inline=False)
+    embed.set_footer(text=proclamations.clip(f"Proclaimed by {by} with /decree, in the words the real ones used. "
+                                             "/proclaim reads out a real one.", 2048))
+    return embed
+
+
+@app_commands.command(name="decree", description="Have a proclamation made about anything, in the Crown's own "
+                                                 "words. (Not a real one.)")
+@app_commands.describe(thing="What it's about, e.g. pineapple on pizza, the wearing of crocs",
+                       kind="Against it (the default), for it, or concerning it",
+                       voice="The King's (the default) or the Queen's",
+                       modern="Tidy the old printers' spelling")
+@app_commands.choices(kind=KIND_CHOICES, voice=VOICE_CHOICES)
+async def decree_command(interaction: discord.Interaction, thing: app_commands.Range[str, 1, 100],
+                         kind: app_commands.Choice[str] | None = None, voice: app_commands.Choice[str] | None = None,
+                         modern: bool = False):
+    """Makes up a proclamation against (or for, or concerning) whatever you like, from the formulae the real ones
+    used: "WHereas His Maiestie is giuen to vnderstand…", "doth straitly charge and command…", "Giuen at Our Court
+    at Whitehall…", dated today. It's marked as not real, and the footer says who proclaimed it."""
+    made = decree.make(thing.strip(), kind.value if kind else decree.AGAINST, voice.value if voice else "king")
+    await interaction.response.send_message(embed=decree_embed(made, interaction.user.display_name, modern),
+                                            allowed_mentions=NO_PINGS)
 
 
 # --- /setup ---
@@ -280,6 +341,8 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(name="Commands", inline=False, value=(
         "`/proclaim [about] [realm] [monarch] [modern]`: a random proclamation, or one about something\n"
         "`/proclaim id:#a39500`: a particular one, by the id in its footer\n"
+        "`/wanted @someone`: proclaim them a traitor, with a real proclamation for apprehending one\n"
+        "`/decree thing`: have a (made-up) proclamation against anything, in the Crown's words\n"
         "`/setup ...`: choose what this server sees (Manage Server)"))
     embed.add_field(name="Filters", inline=False, value=(
         "They're the state's voice, and some of it is ugly. Each server chooses, per category, **off** (none of "
@@ -301,4 +364,4 @@ async def help_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-COMMANDS = [proclaim, setup, help_command]
+COMMANDS = [proclaim, wanted, decree_command, setup, help_command]

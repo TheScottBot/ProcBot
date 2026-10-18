@@ -4,10 +4,11 @@ import re
 import types
 
 import discord
+import pytest
 
 from procbot import commands, content, db, proclamations
 from procbot.bot import ProcBot
-from tests.fakes import Guild, Interaction, Thread, run
+from tests.fakes import Guild, Interaction, Thread, User, run
 
 
 def choice(value, name="x"):
@@ -90,6 +91,58 @@ def test_proclaim_in_a_dm_uses_the_default():
     interaction = Interaction(guild=None)
     for proclamation_id in shown_ids(interaction, times=10):
         assert content.allowed(proclamations.BY_ID[proclamation_id].tags, content.DEFAULT.limits)
+
+
+@pytest.mark.parametrize("suspect, title", [
+    (User(2, "agnes"), "🔔 WANTED: agnes"),
+    (User(1, "scott"), "🙇 scott has surrendered to the Crown"),
+    (User(999, "procbot"), "📜 The Crown does not apprehend itself"),
+])
+def test_wanted(suspect, title):
+    interaction = Interaction()
+    run(commands.wanted.callback(interaction, suspect=suspect))
+    assert interaction.last.embed.title == title
+    assert interaction.last.allowed_mentions == commands.NO_PINGS and suspect.mention in interaction.last.content
+    p = shown(interaction)
+    assert proclamations.WANTED.search(" ".join(p.heading + (p.title,)))
+    assert content.allowed(p.tags, content.DEFAULT.limits)
+
+
+def test_wanted_shows_the_reward():
+    run(subcommand("preset").callback(Interaction(), preset=choice("unabridged")))
+    interaction = Interaction()
+    for _ in range(40):
+        run(commands.wanted.callback(interaction, suspect=User(2, "agnes")))
+        if proclamations.reward(shown(interaction)):
+            break
+    assert any(field.name == "💰 Reward" for field in interaction.last.embed.fields)
+
+
+def test_wanted_when_the_filters_allow_none():
+    for p in proclamations.matching(kind=proclamations.WANTED):
+        db.hide(111, p.id)
+    interaction = Interaction()
+    run(commands.wanted.callback(interaction, suspect=User(2, "agnes")))
+    assert interaction.last.ephemeral and "gets past the filters here" in interaction.last.content
+
+
+def test_decree():
+    interaction = Interaction()
+    run(commands.decree_command.callback(interaction, thing="pineapple on pizza"))
+    embed = interaction.last.embed
+    assert embed.title == "By the King. A Proclamation against pineapple on pizza."
+    assert embed.author.name == "Not a real proclamation" and "Proclaimed by scott" in embed.footer.text
+    assert interaction.last.allowed_mentions == commands.NO_PINGS and not interaction.last.ephemeral
+    run(commands.decree_command.callback(interaction, thing="crocs", kind=choice("for"), voice=choice("queen"),
+                                         modern=True))
+    embed = interaction.last.embed
+    assert embed.title == "By the Queene. A Proclamation for crocs." and "Majestie" in embed.description
+
+
+def test_decree_escapes_markdown():
+    interaction = Interaction()
+    run(commands.decree_command.callback(interaction, thing="**bold** claims"))
+    assert "\\*\\*bold\\*\\*" in interaction.last.embed.description
 
 
 def test_monarch_autocomplete():
@@ -219,7 +272,7 @@ def test_help():
 def test_the_commands_register_within_discords_limits():
     bot = ProcBot()
     names = {command.name for command in bot.tree.get_commands()}
-    assert names == {"proclaim", "setup", "help"}
+    assert names == {"proclaim", "wanted", "decree", "setup", "help"}
     for command in bot.tree.get_commands():
         payload = command.to_dict(bot.tree)
         stack = [payload]

@@ -14,6 +14,8 @@ Early English Books Online, which are public domain (CC0). Each links to its ful
 |---|---|
 | `/proclaim [about] [realm] [monarch] [modern]` | A random proclamation, or one that mentions something: `about: tobacco`, `realm: Ireland`, `monarch: Elizabeth I`. `modern: True` tidies the printers' spelling (vnto, haue, Maiestie) |
 | `/proclaim id:#a39500` | A particular one, by the id in its footer |
+| `/wanted @someone` | Proclaim them a traitor (named, not pinged), with a real proclamation "for the apprehension of" one, and the reward when it says |
+| `/decree thing [kind] [voice]` | A made-up proclamation `against` (or `for`, or `concerning`) anything, by the King or the Queen, in the real ones' words and spelling, dated today. Marked as not real |
 | `/setup show` | This server's filters, and how many proclamations they allow |
 | `/setup preset` | Every filter at once: 🕊️ Tame, ⚖️ Tasteful (the default), 🪓 Grim, 📜 Unabridged |
 | `/setup <category> level:` | One filter: **off** (none of it), **mild** (passing mentions), **full** (anything) |

@@ -14,6 +14,9 @@ from procbot.spelling import modern
     ("cōtained", "contained"),  # As TCP has it: o and a combining stroke
     ("the ȝeir of God", "the yeir of God"),
     ("VNTO OVR REALME", "UNTO OUR REALME"),
+    ("a Iuell", "a Juell"),
+    ("the iiii. day", "the iiii. day"),  # Roman numerals stay
+    ("all Maiors, Sheriffes", "all Maiors, Sheriffes"),  # Mayors, not majors
 ])
 def test_tidies_printers_spelling(printed, tidied):
     assert modern(printed) == tidied

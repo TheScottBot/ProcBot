@@ -130,19 +130,20 @@ UNLIMITED = content.every(content.FULL)
 
 
 def matching(limits: dict[str, int] = UNLIMITED, hidden: set[str] = frozenset(), realm: str = "", monarch: str = "",
-             about: str = "") -> list[Proclamation]:
+             about: str = "", kind: re.Pattern | None = None) -> list[Proclamation]:
     """The proclamations these limits allow (content.py) and aren't hidden, of this realm and monarch and about these
-    words, if given."""
+    words, if given. `kind` must match the heading or title: WANTED for the ones for apprehending someone."""
     patterns = words_in(about)
     return [p for p in PROCLAMATIONS if p.id not in hidden and content.allowed(p.tags, limits)
             and (not realm or p.realm == realm) and (not monarch or p.monarch == monarch)
-            and all(pattern.search(p.text) for pattern in patterns)]
+            and all(pattern.search(p.text) for pattern in patterns)
+            and (kind is None or kind.search(" ".join(p.heading + (p.title,))))]
 
 
 def pick(where: int, limits: dict[str, int] = UNLIMITED, hidden: set[str] = frozenset(), realm: str = "",
-         monarch: str = "", about: str = "") -> Proclamation | None:
+         monarch: str = "", about: str = "", kind: re.Pattern | None = None) -> Proclamation | None:
     """A random proclamation that matching() allows, avoiding ones shown here lately."""
-    candidates = matching(limits, hidden, realm, monarch, about)
+    candidates = matching(limits, hidden, realm, monarch, about, kind)
     if not candidates:
         return None
     shown = recent.setdefault(where, deque(maxlen=RECENT_SIZE))
@@ -150,6 +151,33 @@ def pick(where: int, limits: dict[str, int] = UNLIMITED, hidden: set[str] = froz
     proclamation = random.choices(fresh, weights=[WEIGHTS.get(p.id, 1) for p in fresh])[0]
     shown.append(proclamation.id)
     return proclamation
+
+
+# Proclamations for catching someone: "for the apprehension of", "for discovering and apprehending", "offering a
+# reward for". /wanted reads these out.
+WANTED = re.compile(r"\bapprehen|\bdisco[uv]er\w* and apprehen|\bfor the taking of|\boffering a reward", re.I)
+NUMBER_WORDS = (r"(?:an?|one|two|three|four|fiue|five|six|seuen|seven|eight|nine|ten|tenne|eleuen|eleven|twelue|"
+                r"twelve|\w+teen|twenty|thirty|forty|fourty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|and)")
+MONEY = re.compile(rf"\b((?:{NUMBER_WORDS}[\s-]+){{0,6}}{NUMBER_WORDS}|\d[\d,]*)\s+(pounds?|merks|markes|marks|"
+                   rf"guineas|crownes|crowns)\b", re.I)
+
+
+def reward(proclamation: Proclamation) -> str:
+    """The reward offered, if it says: "Five hundred pounds", "Two thousand merks". The first sum of money in the
+    250 characters after "reward", or in a proclamation for apprehending someone, after "the sum of" ("Wee doe
+    promise to bestow vpon such person as shall apprehend the said Feild … the summe of tenne Pounds")."""
+    money = None
+    for found in re.finditer(r"\breward", proclamation.text, re.I):
+        if money := MONEY.search(proclamation.text, found.end(), found.end() + 250):
+            break
+    if not money and WANTED.search(" ".join(proclamation.heading + (proclamation.title,))):
+        money = next((found for found in MONEY.finditer(proclamation.text)
+                      if re.search(r"\bsumm?e? of\s*$", proclamation.text[max(0, found.start() - 12):found.start()],
+                                   re.I)), None)
+    if not money:
+        return ""
+    amount = re.sub(r"\s+", " ", money.group(0)).strip()
+    return amount[0].upper() + amount[1:].lower()
 
 
 def clip(text: str, limit: int) -> str:
@@ -191,6 +219,8 @@ def embed(proclamation: Proclamation, modern: bool = False, title: str = "") -> 
                               f"{result.description}")[:4096]
     author = " · ".join(part for part in (REALMS[proclamation.realm], proclamation.by, proclamation.when) if part)
     result.set_author(name=clip(author, 256))
+    if amount := reward(proclamation):
+        result.add_field(name="💰 Reward", value=tidy(amount), inline=False)
     if proclamation.dateline:
         result.add_field(name="Given", value=clip(tidy(proclamation.dateline), 1024), inline=False)
     if proclamation.signed:

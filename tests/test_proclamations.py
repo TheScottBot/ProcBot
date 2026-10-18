@@ -77,6 +77,29 @@ def test_links():
     assert p.source_url == "https://github.com/textcreationpartnership/A39500"
 
 
+def test_wanted_ones():
+    wanted = proclamations.matching(kind=proclamations.WANTED)
+    assert len(wanted) >= 60
+    assert all(proclamations.WANTED.search(" ".join(p.heading + (p.title,))) for p in wanted)
+
+
+@pytest.mark.parametrize("text, amount", [
+    ("whosoever shall apprehend him shall have a Reward of Five hundred Pounds", "Five hundred pounds"),
+    ("shall have as a Reward the Sum of two thousand merks for his discovery", "Two thousand merks"),
+    ("Wee doe promise to bestow vpon such person as shall apprehend the said Feild the summe of tenne Pounds",
+     "Tenne pounds"),
+    ("upon pain of forfeiting the sum of ten pounds", ""),  # A fine, not a reward: no "reward", not a wanted one
+])
+def test_reward(text, amount):
+    title = "A proclamation for the apprehension of John Field" if "Feild" in text else "A proclamation"
+    assert proclamations.reward(proclamations.Proclamation("a1", 1, "england", title, (text,))) == amount
+
+
+def test_rewards_found():
+    wanted = proclamations.matching(kind=proclamations.WANTED)
+    assert sum(bool(proclamations.reward(p)) for p in wanted) >= 40
+
+
 def test_monarchs_in_reign_order():
     assert proclamations.MONARCHS[0] == "Henry VII"
     assert proclamations.MONARCHS.index("Elizabeth I") < proclamations.MONARCHS.index("James I")
