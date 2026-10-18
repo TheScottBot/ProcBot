@@ -1,0 +1,14 @@
+.env
+.env.dev
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.idea/
+*.db
+logs/
+
+# TEI XML downloaded by python -m procbot.tools.proclamations_build; only procbot/data/proclamations.json is kept
+build/

@@ -32,10 +32,11 @@ On Linux, `deploy/procbot.service` runs it from `/opt/procbot`. Tests: `python -
 
 ## The data
 
-`procbot/data/proclamations.json` is built by `python -m procbot.tools.tcp_build` (no extra dependencies). It reads
-the TCP catalogue, picks out the proclamations, downloads their TEI XML into `build/tcp/` (once), and keeps the
-text as printed, with long s as s and broken words joined. `--offline` rebuilds from what's downloaded. See the
-tool's docstring for how proclamations, realms, monarchs and dates are worked out.
+`procbot/data/proclamations.json` is built by `python -m procbot.tools.proclamations_build` (no extra
+dependencies). It reads the Text Creation Partnership's catalogue, picks out the proclamations, downloads their
+TEI XML into `build/tcp/` (once), and keeps the text as printed, with long s as s and broken words joined.
+`--offline` rebuilds from what's downloaded. See the tool's docstring for how proclamations, realms, monarchs and
+dates are worked out.
 
 Further reading: Robert Steele, *Tudor and Stuart Proclamations 1485-1714* (1910), and James Kelly and Mary Ann
 Lyons (eds.), *The Proclamations of Ireland 1660-1820* (Irish Manuscripts Commission, 2014; in copyright, so not

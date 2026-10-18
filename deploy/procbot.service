@@ -1,0 +1,24 @@
+# systemd service for procbot, checked out at /opt/procbot and run as the "procbot" user.
+#   sudo cp /opt/procbot/deploy/procbot.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#   sudo systemctl enable --now procbot      (logs: journalctl -u procbot -f)
+[Unit]
+Description=procbot Discord bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=procbot
+WorkingDirectory=/opt/procbot
+ExecStart=/opt/procbot/.venv/bin/python /opt/procbot/bot.py
+Restart=on-failure
+RestartSec=10
+
+# It only needs to write its logs (and, later, its database), in /opt/procbot.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/procbot
+
+[Install]
+WantedBy=multi-user.target

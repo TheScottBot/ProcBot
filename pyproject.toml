@@ -1,0 +1,30 @@
+[project]
+name = "procbot"
+version = "0.1.0"
+description = "Royal proclamations of England, Ireland and Scotland (1485-1700), read out on Discord"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "discord.py>=2.4",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+procbot = "procbot.bot:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["procbot*"]
+
+[tool.setuptools.package-data]
+"procbot" = ["data/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning:discord.*"]
