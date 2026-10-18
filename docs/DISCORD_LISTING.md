@@ -10,13 +10,16 @@ Copy for the Developer Portal (General Information) and the App Directory.
 - Invite: https://discord.com/oauth2/authorize?client_id=1561334840178122752&permissions=18432&integration_type=0&scope=bot+applications.commands
   (the bot's application ID is 1561334840178122752; 18432 is Send Messages and Embed Links)
 
-## Description (388 / 400 characters)
+Discord's word filter turned down the first version of the description, so these avoid anything it might flag:
+no traitors, plague, tobacco or ale, no "wanted on a friend", and none of the period's insults quoted, even as history.
 
-Real royal proclamations of England, Ireland and Scotland, 1485-1714, as printed and posted up: against tobacco, starch and coffee houses, for the apprehension of traitors, on plague and ale. 8,790 of them, each linked to its public-domain source. Try /wanted on a friend or /decree against anything. Admins use /setup to pick filters per category, or set a daily Proclamation of the Day.
+## Description (396 / 400 characters)
 
-## Summary (Discovery Settings, 186 / 200)
+Royal proclamations of England, Ireland and Scotland, 1485-1714, as printed and posted in the market place: on starch, swans, hackney coaches, coffee houses, fairs and the coinage. 8,790 of them, each linked to its public-domain source. Try /decree to issue your own, or /onthisday for one from today's date. Admins use /setup to choose what the server sees, or to post a Proclamation of the Day.
 
-Real royal proclamations of England, Ireland and Scotland, 1485-1714: against tobacco, coffee houses and traitors. Your server picks what to filter: religion, violence, bigotry and more.
+## Summary (Discovery Settings, 181 / 200)
+
+Royal proclamations of England, Ireland and Scotland, 1485-1714: on starch, swans, coffee houses, fairs and the coinage. Each server chooses what it sees, and can get one every day.
 
 ## Expanded Description (Discovery Settings)
 
@@ -25,15 +28,15 @@ only a blank line starts a new paragraph. Hence the bold lines and one paragraph
 
 **Proclamations of your Server.**
 
-For two centuries, the Crown spoke to its subjects by proclamation: printed, read aloud in the market place and nailed up on church doors. Kings, queens, lords lieutenant and privy councils of England, Ireland and Scotland issued thousands, against tobacco, starch and coffee houses, for the apprehension of traitors, on plague, Jesuits and the price of ale.
+For two centuries, the Crown spoke to its subjects by proclamation: printed, read aloud in the market place and nailed up on church doors. Kings, queens, lords lieutenant and privy councils of England, Ireland and Scotland issued thousands, on starch, swans and hackney coaches, coffee houses, fairs, fasts and the coinage.
 
 ProcBot reads them out: 8,790 of them, 1485-1714. 1,812 in full, as printed, from the Text Creation Partnership's public-domain transcriptions of Early English Books Online, and the rest as Robert Steele's 1910 summaries. Each links to its source.
 
 **Commands**
 
-📜 `/proclaim`: a random proclamation, or `/proclaim about:tobacco` for one on a topic, by realm or monarch too
+📜 `/proclaim`: a random proclamation, or `/proclaim about:starch` for one on a topic, by realm or monarch too
 
-🪓 `/wanted @friend`: proclaim them a traitor, with a real proclamation for apprehending one (named, never pinged)
+🔍 `/wanted @friend`: a real "wanted" proclamation from the archives, with the reward on offer, naming your friend (never pinged)
 
 👑 `/decree thing`: a made-up proclamation against anything, in the Crown's own words and spelling
 
@@ -47,7 +50,7 @@ ProcBot reads them out: 8,790 of them, 1485-1714. 1,812 in full, as printed, fro
 
 **Your server, your taste**
 
-These are the state's own words, and some are ugly: "papists" banished, bounties "dead or alive", "the detestable vice of buggery". Instead of cutting them for everyone, every proclamation is tagged, and each server picks what to keep, per category: **off**, **mild** or **full**. Use `/setup lgbt level:off` for an LGBTQ+-friendly server, `/setup violence level:mild` to tone down the hangings, or one preset from 🕊️ **Tame** to 📜 **Unabridged**. New servers start on ⚖️ **Tasteful**.
+These are the state's own words, and some are harsh: about other faiths and peoples, about punishment, about sexuality. Instead of cutting them for everyone, every proclamation is tagged, and each server picks what to keep, per category: **off**, **mild** or **full**. Use `/setup lgbt level:off` for an LGBTQ+-friendly server, `/setup religion level:mild` to soften the religious quarrels, or one preset from 🕊️ **Tame** to 📜 **Unabridged**. New servers start on ⚖️ **Tasteful**.
 
 `/setup here` gives one channel its own rules: an Unabridged history channel, say, while the rest of the server stays Tame.
 
